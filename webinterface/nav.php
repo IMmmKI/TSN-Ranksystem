@@ -1,29 +1,23 @@
+<?PHP
+$job_check = $mysqlcon->query("SELECT * FROM $dbname.job_check")->fetchAll(PDO::FETCH_UNIQUE|PDO::FETCH_ASSOC);
+if((time() - $job_check['last_update']['timestamp']) < 259200 && !isset($_SESSION[$rspathhex.'upinfomsg'])) {
+	if(!isset($err_msg)) {
+		$err_msg = '<i class="fa fa-fw fa-info-circle"></i>&nbsp;'.sprintf($lang['upinf2'], date("Y-m-d H:i",$job_check['last_update']['timestamp']), '<a href="//ts-n.net/ranksystem.php?changelog" target="_blank"><i class="fa fa-fw fa-book"></i>&nbsp;', '</a>'); $err_lvl = 1;
+		$_SESSION[$rspathhex.'upinfomsg'] = 1;
+	}
+}
+?>
 <!DOCTYPE html>
-<html>
+<html lang="<?PHP echo $language; ?>">
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="version" content="<?PHP echo $currvers; ?>">
-	<link rel="icon" href="../icons/rs.png">
+	<link rel="icon" href="../tsicons/rs.png">
 	<title>TS-N.NET Ranksystem</title>
-	<link href="../libs/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-	<link href="../libs/bootstrap/css/custom.css" rel="stylesheet">
-	<link href="../libs/bootstrap/addons/sb-admin.css" rel="stylesheet">
-	<link href="../libs/bootstrap/addons/switch-master/bootstrap-switch.min.css" rel="stylesheet">
-	<link href="../libs/bootstrap/addons/touchspin-master/jquery.bootstrap-touchspin.min.css" rel="stylesheet">
-	<link href="../libs/bootstrap/addons/select/bootstrap-select.min.css" rel="stylesheet">
-	<link href="../libs/bootstrap/addons/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
-	<link href="../libs/bootstrap/flag_icon/css/flag-icon.min.css" rel="stylesheet">
-	<script src="../libs/jquery/jquery.min.js"></script>
-	<script src="../libs/bootstrap/js/bootstrap.min.js"></script>
-	<script src="../libs/bootstrap/js/highlight.js"></script>
-	<script src="../libs/bootstrap/js/main.js"></script>
-	<script src="../libs/bootstrap/addons/switch-master/bootstrap-switch.min.js"></script>
-	<script src="../libs/bootstrap/addons/touchspin-master/jquery.bootstrap-touchspin.min.js"></script>
-	<script src="../libs/bootstrap/addons/select/bootstrap-select.min.js"></script>
-	<script src="../libs/bootstrap/addons/show-password/bootstrap-show-password.min.js"></script>
-	<script src="../libs/bootstrap/addons/validator/validator.min.js"></script>
+	<link href="../libs/combined_wi.css?v=<?PHP echo $currvers; ?>" rel="stylesheet">
+	<script src="../libs/combined_wi.js?v=<?PHP echo $currvers; ?>"></script>
 	<script>
 	$(function() {
 		$('.required-icon').tooltip({
@@ -50,8 +44,8 @@
 		<nav class="navbar navbar-inverse navbar-fixed-top">
 			<div class="navbar-header">
 				<a class="navbar-brand" href="index.php">TSN Ranksystem - Webinterface <?PHP echo $currvers;?></a>
-				<?PHP if(isset($_SESSION['newversion']) && version_compare(substr($_SESSION['newversion'], 0, 5), substr($currvers, 0, 5), '>') && $_SESSION['newversion'] != '') {
-					echo '<a class="navbar-brand" href="http://ts-n.net/ranksystem.php" target="_blank">'.$lang['winav9'].' ['.$_SESSION['newversion'].']</a>';
+				<?PHP if(isset($_SESSION[$rspathhex.'newversion']) && version_compare(substr($_SESSION[$rspathhex.'newversion'], 0, 5), substr($currvers, 0, 5), '>') && $_SESSION[$rspathhex.'newversion'] != '') {
+					echo '<a class="navbar-brand" href="//ts-n.net/ranksystem.php?changelog" target="_blank">'.$lang['winav9'].' ['.$_SESSION[$rspathhex.'newversion'].']</a>';
 				} ?>
 			</div>
 			<?PHP if(basename($_SERVER['SCRIPT_NAME']) == "stats.php") { ?>
@@ -65,8 +59,12 @@
 			<?PHP } ?>
 			<ul class="nav navbar-right top-nav">
 				<?PHP
-				echo '<li><a href="http',(!empty($_SERVER['HTTPS'])?'s':''),'://',$_SERVER['SERVER_NAME'],substr(dirname($_SERVER['SCRIPT_NAME']),0,-12),'stats/"><i class="fa fa-fw fa-bar-chart"></i>&nbsp;',$lang['winav6'],'</a></li>';
-				if(isset($_SESSION['username']) && $_SESSION['username'] == $webuser && $_SESSION['password'] == $webpass) { ?>
+				if($_SERVER['SERVER_PORT'] == 443 || $_SERVER['SERVER_PORT'] == 80) {
+					echo '<li><a href="//',$_SERVER['SERVER_NAME'],substr(dirname($_SERVER['SCRIPT_NAME']),0,-12),'stats/"><i class="fa fa-fw fa-bar-chart"></i>&nbsp;',$lang['winav6'],'</a></li>';
+				} else {
+					echo '<li><a href="//',$_SERVER['SERVER_NAME'],':',$_SERVER['SERVER_PORT'],substr(dirname($_SERVER['SCRIPT_NAME']),0,-12),'stats/"><i class="fa fa-fw fa-bar-chart"></i>&nbsp;',$lang['winav6'],'</a></li>';
+				}
+				if(isset($_SESSION[$rspathhex.'username']) && $_SESSION[$rspathhex.'username'] == $webuser && $_SESSION[$rspathhex.'password'] == $webpass) { ?>
 				<li>
 					<a href="changepassword.php"><i class="fa fa-lock"></i>&nbsp;<?PHP echo $lang['pass2']; ?></a>
 				</li>
@@ -88,19 +86,25 @@
 							<a href="?lang=de"><span class="flag-icon flag-icon-de"></span>&nbsp;&nbsp;DE - Deutsch</a>
 						</li>
 						<li>
-							<a href="?lang=en"><span class="flag-icon flag-icon-gb"></span>&nbsp;&nbsp;EN - english</a>
+							<a href="?lang=en"><span class="flag-icon flag-icon-gb"></span>&nbsp;&nbsp;EN - English</a>
 						</li>
 						<li>
-							<a href="?lang=it"><span class="flag-icon flag-icon-it"></span>&nbsp;&nbsp;IT - italiano</a>
+							<a href="?lang=fr"><span class="flag-icon flag-icon-fr"></span>&nbsp;&nbsp;FR - français</a>
+						</li>
+						<li>
+							<a href="?lang=it"><span class="flag-icon flag-icon-it"></span>&nbsp;&nbsp;IT - Italiano</a>
 						</li>
 						<li>
 							<a href="?lang=it"><span class="flag-icon flag-icon-nl"></span>&nbsp;&nbsp;NL - Nederlands</a>
 						</li>
 						<li>
-							<a href="?lang=ro"><span class="flag-icon flag-icon-ro"></span>&nbsp;&nbsp;RO - românesc</a>
+							<a href="?lang=ro"><span class="flag-icon flag-icon-ro"></span>&nbsp;&nbsp;RO - Română</a>
 						</li>
 						<li>
-							<a href="?lang=ru"><span class="flag-icon flag-icon-ru"></span>&nbsp;&nbsp;RU - русский</a>
+							<a href="?lang=ru"><span class="flag-icon flag-icon-ru"></span>&nbsp;&nbsp;RU - Pусский</a>
+						</li>
+						<li>
+							<a href="?lang=pt"><span class="flag-icon flag-icon-ptbr"></span>&nbsp;&nbsp;PT - Português</a>
 						</li>
 					</ul>
 				</li>
@@ -126,6 +130,15 @@
 						<a href="stats.php"><i class="fa fa-fw fa-bar-chart"></i>&nbsp;<?PHP echo $lang['winav6']; ?></a>
 					</li>
 					<li class="divider"></li>
+					<?PHP echo '<li'.(basename($_SERVER['SCRIPT_NAME']) == "addon_assign_groups.php" ? ' class="active">' : '>'); ?>
+						<a href="javascript:;" data-toggle="collapse" data-target="#addons"><i class="fa fa-fw fa-puzzle-piece"></i>&nbsp;<?PHP echo $lang['winav12']; ?>&nbsp;<i class="fa fa-fw fa-caret-down"></i></a>
+						<ul id="addons" class="collapse">
+							<?PHP echo '<li'.(basename($_SERVER['SCRIPT_NAME']) == "addon_assign_groups.php" ? ' class="active">' : '>'); ?>
+								<a href="addon_assign_groups.php"><?PHP echo $lang['stag0001']; ?></a>
+							</li>
+						</ul>
+					</li>
+					<li class="divider"></li>
 					<?PHP echo '<li'.(basename($_SERVER['SCRIPT_NAME']) == "admin.php" ? ' class="active">' : '>'); ?>
 						<a href="javascript:;" data-toggle="collapse" data-target="#demo"><i class="fa fa-fw fa-users"></i>&nbsp;<?PHP echo $lang['winav7']; ?>&nbsp;<i class="fa fa-fw fa-caret-down"></i></a>
 						<ul id="demo" class="collapse">
@@ -142,7 +155,7 @@
 			</div>
 		</nav>
 <?PHP
-if($adminuuid==NULL && $_SESSION['username'] == $webuser && !isset($err_msg)) {
+if($adminuuid==NULL && $_SESSION[$rspathhex.'username'] == $webuser && !isset($err_msg)) {
 	$err_msg = $lang['winav11']; $err_lvl = 3;
 }
 

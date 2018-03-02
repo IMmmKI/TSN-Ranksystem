@@ -21,45 +21,38 @@ function getclientip() {
 }
 
 if (isset($_POST['logout'])) {
-    $_SESSION = array();
-    session_destroy();
-	if($_SERVER['HTTPS'] == "on") {
-		header("Location: https://".$_SERVER['HTTP_HOST'].rtrim(dirname($_SERVER['PHP_SELF']), '/\\'));
-	} else {
-		header("Location: http://".$_SERVER['HTTP_HOST'].rtrim(dirname($_SERVER['PHP_SELF']), '/\\'));
-	}
+    rem_session_ts3($rspathhex);
+	header("Location: //".$_SERVER['HTTP_HOST'].rtrim(dirname($_SERVER['PHP_SELF']), '/\\'));
 	exit;
 }
 
-if (!isset($_SESSION['username']) || $_SESSION['username'] != $webuser || $_SESSION['password'] != $webpass || $_SESSION['clientip'] != getclientip()) {
-	if($_SERVER['HTTPS'] == "on") {
-		header("Location: https://".$_SERVER['HTTP_HOST'].rtrim(dirname($_SERVER['PHP_SELF']), '/\\'));
-	} else {
-		header("Location: http://".$_SERVER['HTTP_HOST'].rtrim(dirname($_SERVER['PHP_SELF']), '/\\'));
-	}
+if (!isset($_SESSION[$rspathhex.'username']) || $_SESSION[$rspathhex.'username'] != $webuser || $_SESSION[$rspathhex.'password'] != $webpass || $_SESSION[$rspathhex.'clientip'] != getclientip()) {
+	header("Location: //".$_SERVER['HTTP_HOST'].rtrim(dirname($_SERVER['PHP_SELF']), '/\\'));
 	exit;
 }
 
 require_once('nav.php');
 
-if (isset($_POST['update']) && $_SESSION['username'] == $webuser && $_SESSION['password'] == $webpass && $_SESSION['clientip'] == getclientip()) {
+if (isset($_POST['update']) && $_SESSION[$rspathhex.'username'] == $webuser && $_SESSION[$rspathhex.'password'] == $webpass && $_SESSION[$rspathhex.'clientip'] == getclientip()) {
 	$timezone 		= $_POST['timezone'];
-	$dateformat 	= $_POST['dateformat'];
+	$timeformat 	= $_POST['dateformat'];
 	$logpath		= addslashes($_POST['logpath']);
 	$language  		= $_POST['languagedb'];
 	if (isset($_POST['upcheck'])) $upcheck = 1; else $upcheck = 0;
 	$updateinfotime = $_POST['updateinfotime'];
 	$uniqueid       = $_POST['uniqueid'];
 	$adminuuid     	= $_POST['adminuuid'];
-	if ($mysqlcon->exec("UPDATE $dbname.config set timezone='$timezone',dateformat='$dateformat',logpath='$logpath',language='$language',upcheck='$upcheck',updateinfotime='$updateinfotime',uniqueid='$uniqueid',adminuuid='$adminuuid'") === false) {
+	if ($mysqlcon->exec("UPDATE $dbname.config set timezone='$timezone',dateformat='$timeformat',logpath='$logpath',language='$language',upcheck='$upcheck',updateinfotime='$updateinfotime',uniqueid='$uniqueid',adminuuid='$adminuuid'") === false) {
         $err_msg = print_r($mysqlcon->errorInfo(), true);
 		$err_lvl = 3;
     } else {
-        $err_msg = $lang['wisvsuc']." ".$lang['wisvres'];
+        $err_msg = $lang['wisvsuc']." ".sprintf($lang['wisvres'], '&nbsp;&nbsp;<form class="btn-group" name="restart" action="bot.php" method="POST"><button
+		type="submit" class="btn btn-primary" name="restart"><i class="fa fa-fw fa-refresh"></i>&nbsp;'.$lang['wibot7'].'</button></form>');
 		$err_lvl = NULL;
     }
 	$logpath				= $_POST['logpath'];
-	$config[0]['uniqueid']	= $_POST['uniqueid'];
+	$config['uniqueid']		= $_POST['uniqueid'];
+	$config['adminuuid']	= $_POST['adminuuid'];
 }
 ?>
 		<div id="page-wrapper">
@@ -113,11 +106,13 @@ if (isset($_POST['update']) && $_SESSION['username'] == $webuser && $_SESSION['p
 									<?PHP
 									echo '<option data-subtext="العربية" value="ar"'.($language === 'ar' ? ' selected="selected"' : '').'>AR</option>';
 									echo '<option data-subtext="Deutsch" value="de"'.($language === 'de' ? ' selected="selected"' : '').'>DE</option>';
-									echo '<option data-subtext="english" value="en"'.($language === 'en' ? ' selected="selected"' : '').'>EN</option>';
-									echo '<option data-subtext="italiano" value="it"'.($language === 'it' ? ' selected="selected"' : '').'>IT</option>';
+									echo '<option data-subtext="English" value="en"'.($language === 'en' ? ' selected="selected"' : '').'>EN</option>';
+									echo '<option data-subtext="français" value="fr"'.($language === 'fr' ? ' selected="selected"' : '').'>FR</option>';
+									echo '<option data-subtext="Italiano" value="it"'.($language === 'it' ? ' selected="selected"' : '').'>IT</option>';
 									echo '<option data-subtext="Nederlands" value="nl"'.($language === 'nl' ? ' selected="selected"' : '').'>NL</option>';
-									echo '<option data-subtext="românesc" value="ro"'.($language === 'ro' ? ' selected="selected"' : '').'>RO</option>';
-									echo '<option data-subtext="русский" value="ru"'.($language === 'ru' ? ' selected="selected"' : '').'>RU</option>';
+									echo '<option data-subtext="Română" value="ro"'.($language === 'ro' ? ' selected="selected"' : '').'>RO</option>';
+									echo '<option data-subtext="Pусский" value="ru"'.($language === 'ru' ? ' selected="selected"' : '').'>RU</option>';
+									echo '<option data-subtext="Português" value="pt"'.($language === 'pt' ? ' selected="selected"' : '').'>PT</option>';
 									?>
 									</select>
 								</div>
@@ -127,8 +122,8 @@ if (isset($_POST['update']) && $_SESSION['username'] == $webuser && $_SESSION['p
 							<div class="form-group">
 								<label class="col-sm-4 control-label" data-toggle="modal" data-target="#wiadmuuiddesc"><?php echo $lang['wiadmuuid']; ?><i class="help-hover glyphicon glyphicon-question-sign"></i></label>
 								<div class="col-sm-8 required-field-block">
-									<input type="text" class="form-control" data-pattern="^([A-Za-z0-9\\\/\+]{27}=)$" data-error="Check the entered unique ID!" name="adminuuid" value="<?php echo $adminuuid; ?>" required>
-									<div class="help-block with-errors"></div>
+									<textarea class="form-control" data-pattern="^([A-Za-z0-9\\\/\+]{27}=,)*([A-Za-z0-9\\\/\+]{27}=)$" data-error="Check all unique IDs are correct and your list do not ends with a comma!" rows="1" name="adminuuid" maxlength="500"><?php echo $config['adminuuid']; ?></textarea>
+											<div class="help-block with-errors"></div>
 									<div class="required-icon"><div class="text">*</div></div>
 								</div>
 							</div>
@@ -161,7 +156,7 @@ if (isset($_POST['update']) && $_SESSION['username'] == $webuser && $_SESSION['p
 									<div class="form-group">
 										<label class="col-sm-4 control-label" data-toggle="modal" data-target="#wiupuiddesc"><?php echo $lang['wiupuid']; ?><i class="help-hover glyphicon glyphicon-question-sign"></i></label>
 										<div class="col-sm-8">
-											<textarea class="form-control" data-pattern="^([A-Za-z0-9\\\/\+]{27}=,)*([A-Za-z0-9\\\/\+]{27}=)$" data-error="Check all unique IDs are correct and your list do not ends with a comma!" rows="1" name="uniqueid" maxlength="500"><?php echo $config[0]['uniqueid']; ?></textarea>
+											<textarea class="form-control" data-pattern="^([A-Za-z0-9\\\/\+]{27}=,)*([A-Za-z0-9\\\/\+]{27}=)$" data-error="Check all unique IDs are correct and your list do not ends with a comma!" rows="1" name="uniqueid" maxlength="500"><?php echo $config['uniqueid']; ?></textarea>
 											<div class="help-block with-errors"></div>
 										</div>
 									</div>

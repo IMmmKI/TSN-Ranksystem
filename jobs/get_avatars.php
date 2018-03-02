@@ -1,9 +1,7 @@
 <?PHP
-function get_avatars($ts3,$mysqlcon,$lang,$dbname,$slowmode,$timezone,$logpath) {
-	$count = 0;
-
+function get_avatars($ts3,$slowmode,$timezone,$logpath,$avatar_delay) {
 	try {
-		check_shutdown($timezone,$logpath); usleep($slowmode);
+		usleep($slowmode);
 		$tsfilelist = $ts3->channelFileList($cid="0", $cpw="", $path="/");
 	} catch (Exception $e) {
 		if ($e->getCode() != 1281) {
@@ -16,12 +14,13 @@ function get_avatars($ts3,$mysqlcon,$lang,$dbname,$slowmode,$timezone,$logpath) 
 			$fsfilelistarray[$fsfile] = filemtime(substr(__DIR__,0,-4).'avatars/'.$fsfile);
 		}
     }
+	unset($fsfilelist);
 
 	if (isset($tsfilelist)) {
 		foreach($tsfilelist as $tsfile) {
 			$fullfilename = '/'.$tsfile['name'];
 			$uuidasbase16 = substr($tsfile['name'],7);
-			if (!isset($fsfilelistarray[$uuidasbase16.'.png']) || $tsfile['datetime']>$fsfilelistarray[$uuidasbase16.'.png']) {
+			if (!isset($fsfilelistarray[$uuidasbase16.'.png']) || ($tsfile['datetime'] - $avatar_delay) > $fsfilelistarray[$uuidasbase16.'.png']) {
 				if (substr($tsfile['name'],0,7) == 'avatar_') {
 					try {
 						check_shutdown($timezone,$logpath); usleep($slowmode);
@@ -33,7 +32,6 @@ function get_avatars($ts3,$mysqlcon,$lang,$dbname,$slowmode,$timezone,$logpath) 
 						if(file_put_contents($avatarfilepath, $tsfile) === false) {
 							enter_logfile($logpath,$timezone,2,"Error while writing out the avatar. Please check the permission for the folder 'avatars'");
 						}
-						$count++;
 					}
 					catch (Exception $e) {
 						enter_logfile($logpath,$timezone,2,"get_avatars 2:".$e->getCode().': '."Error while downloading avatar: ".$e->getMessage());
@@ -41,6 +39,7 @@ function get_avatars($ts3,$mysqlcon,$lang,$dbname,$slowmode,$timezone,$logpath) 
 				}
 			}
 		}
+		unset($fsfilelistarray);
 	}
 }
 ?>

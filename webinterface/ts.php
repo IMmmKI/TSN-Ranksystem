@@ -21,28 +21,19 @@ function getclientip() {
 }
 
 if (isset($_POST['logout'])) {
-    $_SESSION = array();
-    session_destroy();
-	if($_SERVER['HTTPS'] == "on") {
-		header("Location: https://".$_SERVER['HTTP_HOST'].rtrim(dirname($_SERVER['PHP_SELF']), '/\\'));
-	} else {
-		header("Location: http://".$_SERVER['HTTP_HOST'].rtrim(dirname($_SERVER['PHP_SELF']), '/\\'));
-	}
+    rem_session_ts3($rspathhex);
+	header("Location: //".$_SERVER['HTTP_HOST'].rtrim(dirname($_SERVER['PHP_SELF']), '/\\'));
 	exit;
 }
 
-if (!isset($_SESSION['username']) || $_SESSION['username'] != $webuser || $_SESSION['password'] != $webpass || $_SESSION['clientip'] != getclientip()) {
-	if($_SERVER['HTTPS'] == "on") {
-		header("Location: https://".$_SERVER['HTTP_HOST'].rtrim(dirname($_SERVER['PHP_SELF']), '/\\'));
-	} else {
-		header("Location: http://".$_SERVER['HTTP_HOST'].rtrim(dirname($_SERVER['PHP_SELF']), '/\\'));
-	}
+if (!isset($_SESSION[$rspathhex.'username']) || $_SESSION[$rspathhex.'username'] != $webuser || $_SESSION[$rspathhex.'password'] != $webpass || $_SESSION[$rspathhex.'clientip'] != getclientip()) {
+	header("Location: //".$_SERVER['HTTP_HOST'].rtrim(dirname($_SERVER['PHP_SELF']), '/\\'));
 	exit;
 }
 
 require_once('nav.php');
 
-if (isset($_POST['update']) && $_SESSION['username'] == $webuser && $_SESSION['password'] == $webpass && $_SESSION['clientip'] == getclientip()) {
+if (isset($_POST['update']) && $_SESSION[$rspathhex.'username'] == $webuser && $_SESSION[$rspathhex.'password'] == $webpass && $_SESSION[$rspathhex.'clientip'] == getclientip()) {
 	$tshost     = $_POST['tshost'];
     $tsquery    = $_POST['tsquery'];
     $tsvoice    = $_POST['tsvoice'];
@@ -52,11 +43,13 @@ if (isset($_POST['update']) && $_SESSION['username'] == $webuser && $_SESSION['p
     $queryname2 = $_POST['queryname2'];
     $defchid 	= $_POST['defchid'];
 	$slowmode 	= $_POST['slowmode'];
-    if ($mysqlcon->exec("UPDATE $dbname.config set tshost='$tshost',tsquery='$tsquery',tsvoice='$tsvoice',tsuser='$tsuser',tspass='$tspass',queryname='$queryname',queryname2='$queryname2',slowmode='$slowmode',defchid='$defchid'") === false) {
+	$avatar_delay= $_POST['avatar_delay'];
+    if ($mysqlcon->exec("UPDATE $dbname.config set tshost='$tshost',tsquery='$tsquery',tsvoice='$tsvoice',tsuser='$tsuser',tspass='$tspass',queryname='$queryname',queryname2='$queryname2',slowmode='$slowmode',defchid='$defchid',avatar_delay='$avatar_delay'") === false) {
         $err_msg = print_r($mysqlcon->errorInfo(), true);
 		$err_lvl = 3;
     } else {
-        $err_msg = $lang['wisvsuc']." ".$lang['wisvres'];
+        $err_msg = $lang['wisvsuc']." ".sprintf($lang['wisvres'], '&nbsp;&nbsp;<form class="btn-group" name="restart" action="bot.php" method="POST"><button
+		type="submit" class="btn btn-primary" name="restart"><i class="fa fa-fw fa-refresh"></i>&nbsp;'.$lang['wibot7'].'</button></form>');
 		$err_lvl = NULL;
     }
 	$ts['host']		= $_POST['tshost'];
@@ -76,16 +69,17 @@ if (isset($_POST['update']) && $_SESSION['username'] == $webuser && $_SESSION['p
 						</h1>
 					</div>
 				</div>
-				<form class="form-horizontal" name="update" method="POST">
+				<form class="form-horizontal" data-toggle="validator" name="update" method="POST">
 					<div class="row">
 						<div class="col-md-6">
 							<div class="panel panel-default">
 								<div class="panel-body">
-									<div class="form-group">
+									<div class="form-group required-field-block">
 										<label class="col-sm-4 control-label" data-toggle="modal" data-target="#wits3hostdesc"><?php echo $lang['wits3host']; ?><i class="help-hover glyphicon glyphicon-question-sign"></i></label>
-										<div class="col-sm-8 required-field-block">
-											<input type="text" class="form-control" name="tshost" value="<?php echo $ts['host']; ?>" maxlength="64" required>
+										<div class="col-sm-8">
+											<input type="text" class="form-control" data-pattern="^[^.]+[^:]*$" data-error="Do not enter the port inside this field. You should enter the port (e.g. 9987) inside the TS3-Voice-Port!" name="tshost" value="<?php echo $ts['host']; ?>" maxlength="64" required>
 											<div class="required-icon"><div class="text">*</div></div>
+											<div class="help-block with-errors"></div>
 										</div>
 									</div>
 									<div class="form-group">
@@ -167,7 +161,7 @@ if (isset($_POST['update']) && $_SESSION['username'] == $webuser && $_SESSION['p
 									<script>
 									$("input[name='defchid']").TouchSpin({
 										min: 0,
-										max: 9223372036854775807,
+										max: 2147483647,
 										verticalbuttons: true,
 										prefix: 'ID:'
 									});
@@ -180,13 +174,30 @@ if (isset($_POST['update']) && $_SESSION['username'] == $webuser && $_SESSION['p
 								<div class="col-sm-8">
 									<select class="selectpicker show-tick form-control" id="basic" name="slowmode">
 									<?PHP
-									echo '<option data-subtext="[recommended]" value="0"'; if($slowmode=="0") echo ' selected="selected"'; echo '>Realtime (deactivated)</option>';
+									echo '<option data-subtext="[recommended]" value="0"'; if($slowmode=="0") echo ' selected="selected"'; echo '>disabled (Realtime)</option>';
 									echo '<option data-divider="true">&nbsp;</option>';
 									echo '<option data-subtext="(0,2 seconds)" value="200000"'; if($slowmode=="200000") echo ' selected="selected"'; echo '>Low delay</option>';
 									echo '<option data-subtext="(0,5 seconds)" value="500000"'; if($slowmode=="500000") echo ' selected="selected"'; echo '>Middle delay</option>';
 									echo '<option data-subtext="(1,0 seconds)" value="1000000"'; if($slowmode=="1000000") echo ' selected="selected"'; echo '>High delay</option>';
+									echo '<option data-subtext="(2,0 seconds)" value="2000000"'; if($slowmode=="2000000") echo ' selected="selected"'; echo '>Huge delay</option>';
+									echo '<option data-subtext="(5,0 seconds)" value="5000000"'; if($slowmode=="5000000") echo ' selected="selected"'; echo '>Ultra delay</option>';
 									?>
 									</select>
+								</div>
+							</div>
+							<div class="row">&nbsp;</div>
+							<div class="form-group">
+								<label class="col-sm-4 control-label" data-toggle="modal" data-target="#wits3avatdesc"><?php echo $lang['wits3avat']; ?><i class="help-hover glyphicon glyphicon-question-sign"></i></label>
+								<div class="col-sm-8">
+									<input type="text" class="form-control" name="avatar_delay" value="<?php echo $avatar_delay; ?>">
+									<script>
+									$("input[name='avatar_delay']").TouchSpin({
+										min: 0,
+										max: 65535,
+										verticalbuttons: true,
+										prefix: 'Sec.:'
+									});
+									</script>
 								</div>
 							</div>
 						</div>
@@ -346,5 +357,35 @@ if (isset($_POST['update']) && $_SESSION['username'] == $webuser && $_SESSION['p
     </div>
   </div>
 </div>
+<div class="modal fade" id="wits3avatdesc" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title"><?php echo $lang['wits3avat']; ?></h4>
+      </div>
+      <div class="modal-body">
+        <?php echo $lang['wits3avatdesc']; ?>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal"><?PHP echo $lang['stnv0002']; ?></button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+$('form[data-toggle="validator"]').validator({
+	custom: {
+		pattern: function ($el) {
+			var pattern = new RegExp($el.data('pattern'));
+			return pattern.test($el.val());
+		}
+	},
+	delay: 100,
+	errors: {
+		pattern: "There should be an error in your value, please check all could be right!"
+	}
+});
+</script>
 </body>
 </html>
